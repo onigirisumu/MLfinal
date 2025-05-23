@@ -9,7 +9,3 @@ A semantic movie recommender that suggests films based on user descriptions.
 
 ## Setup
 
-1. Clone repository:
-   ```bash
-   git clone https://github.com/yourusername/movie-recommender.git
-   cd movie-recommender
