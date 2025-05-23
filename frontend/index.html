@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>CineMatch – Movie Recommender</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🍿 CineMatch</h1>
+      <p class="tagline">Find your perfect movie match</p>
+    </header>
+
+    <section class="search-box">
+      <textarea id="userInput" placeholder="Describe your ideal movie vibe..."></textarea>
+      <button id="goBtn">
+        <span>Get Recommendations</span>
+        <span class="arrow">→</span>
+      </button>
+    </section>
+
+    <section id="results"></section>
+  </div>
+
+  <script>
+    const $ = (sel)=>document.querySelector(sel);
+
+    $('#goBtn').addEventListener('click', getRecommendations);
+    $('#userInput').addEventListener('keydown', e=>{
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); getRecommendations(); }
+    });
+
+    async function getRecommendations(){
+      const overview = $('#userInput').value.trim();
+      if(!overview){ showError('Please describe what you want to watch!'); return; }
+
+      showLoading();
+      try{
+        const res = await fetch('/predict', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({overview})
+        });
+        if(!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        renderResults(data);
+      }catch(err){
+        showError(err.message||'Server error');
+      }
+    }
+
+    /* ---------- helpers ---------- */
+    function showLoading(){
+      $('#results').innerHTML = `
+        <div class="loading">
+          <div class="spinner"></div>
+          <p>Finding cinematic gems for you…</p>
+        </div>`;
+    }
+
+    function showError(msg){
+      $('#results').innerHTML = `<p class="error">${msg}</p>`;
+    }
+
+    function renderResults(data){
+      let html = '';
+
+      /* genres */
+      if(data.genres?.length){
+        html += `<div class="matched-genres">
+          <h3>Matched Genres:</h3>
+          ${data.genres.map(g=>`<span>${g}</span>`).join('')}
+        </div>`;
+      }
+
+      /* movies */
+      if(data.recommendations?.length){
+        html += '<div class="grid">';
+        data.recommendations.forEach((m,i)=>{
+          html += `<article class="card">
+                     <header><span class="index">${i+1}</span><h2>${m.title||'Untitled'}</h2></header>
+                     <p>${m.overview}</p>
+                     <footer>${m.genres.map(g=>`<span>${g}</span>`).join('')}</footer>
+                   </article>`;
+        });
+        html += '</div>';
+      }else{
+        html += '<p class="no-results">No perfect matches found. Try a different description!</p>';
+      }
+
+      $('#results').innerHTML = html;
+    }
+  </script>
+</body>
+</html>
